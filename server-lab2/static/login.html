@@ -1,6 +1,34 @@
 <html>
-    <head></head>
+    <head>
+        <link href="/static/style.css" rel="stylesheet" type="text/css">
+    </head>
     <body>
-        <h1>Hello, lets login</h1>
+        <h1>Login page</h1>
+        <form action="/login" method="POST">
+            <label>Username: </label>
+            <input class="inputBox" name="user" type="text">
+            <br>
+            <label>Password: </label>
+            <input id="password" class="inputBox" name="password" type="password">
+            <br>
+            <button id="show">&#128274;</button>
+        </form>
+
+        <script type="text/javascript">
+            const showPasswordButton = document.getElementById("show")
+
+            showPasswordButton.addEventListener("click", (event) => {
+                event.preventDefault()
+
+                const passBox = document.getElementById("password")
+                if(passBox.type == "text") {
+                    passBox.type = "password"
+                    showPasswordButton.innerHTML = "&#128274;"
+                } else {
+                    passBox.type = "text"
+                    showPasswordButton.innerHTML = "&#128065;"
+                }
+            })
+        </script>
     </body>
 </html>

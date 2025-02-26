@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, send_file
 
 app = Flask(__name__)
 
@@ -8,7 +8,8 @@ def index():
 
 @app.route("/form", methods=["POST", "GET"])
 def postIndex():
-    print(request.args.get("user"))
-    return "FORM PAGE"
+    user = request.form.get("user")
+    print(user)
+    return send_file("./static/form.html")
 
 app.run(port=3000)
