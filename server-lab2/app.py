@@ -7,6 +7,7 @@ app = Flask(__name__)
 def loginPost():
     user = request.form.get("user")
     password = request.form.get("password")
+    mode = request.form.get("mode")
     return send_file("./static/login.html")
 
 @app.route("/games/minesweeper", methods=["GET"])

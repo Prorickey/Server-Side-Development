@@ -2,6 +2,7 @@
 <html>
     <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link href="/static/style.css" rel="stylesheet" type="text/css">
         <style type="text/css">
             * { 
                 padding: 0;
@@ -10,8 +11,8 @@
             }
 
             :root {
-                --color-bg: 119, 33, 138;
-                --color-fg: 255, 255, 255;
+                --color-bg: #35605A;
+                --color-fg: #D8E4FF;
                 --color-selected: 53, 53, 53;
                 --color-mine: 126, 27, 27, 0.75;
                 --color-flag: 0, 128, 0;
@@ -61,8 +62,8 @@
                 align-items: center;
                 border: 2px outset black;
 
-                background: rgba(var(--color-bg));
-                color: rgba(var(--color-fg));
+                background: var(--color-bg);
+                color: var(--color-fg);
 
                 border-radius: 10px;
                 font-weight: bold;
