@@ -179,6 +179,7 @@
                 #startTime          // ms
                 #gameOver           // 1 = win, -1 = lose, 0 = keep going
                 #numMines
+                #gameID
                 
                 #score
                 #name
@@ -217,20 +218,50 @@
                  * @param rows number of rows in the game
                  * @param cols number of columns in the game
                  */
-                constructor(rows, cols){
+                constructor(rows, cols, id = null){
                     this.#numMines = 0;
                     this.#startTime = 0;
                     this.#board = []
-                    for( let row = 0; row < rows; row++ ){
-                        let r = [];
-                        for( let col = 0; col < cols; col++ ){
-                            r.push(0);
+                    this.#gameID = id 
+
+                    console.log(id)
+                    if(id !== null) {
+                        this.#init(id)
+                    } else {
+                        for( let row = 0; row < rows; row++ ){
+                            let r = [];
+                            for( let col = 0; col < cols; col++ ){
+                                r.push(0);
+                            }
+                            this.#board.push(r);
                         }
-                        this.#board.push(r);
+
+                        this.#resetBoard();
+                    }
+                }
+
+                async #init(id) {
+                    this.#gameID = id
+
+                    let packet = {
+                        action: "board",
+                        data: {}
                     }
 
-                    this.#resetBoard();
+                    let resp = await fetch(`/minesweeper/game?id=${id}`, {
+                        method: 'PUT',
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify(packet)
+                    })
+
+                    let data = await resp.json()
+                    console.log(data)
+
+                    // UPDATE THE STATE OF THE BOARD
                 }
+
                 #resetBoard() {
 
                     this.#score = this.rows*this.cols;
@@ -455,12 +486,15 @@
 
             function init(){
                 let params = new URLSearchParams(window.location.search)
+
+                // TODO: No id means playing by yourself
+                gameID = params.get('id')
                 
                 // Defaults to 10 rows and 10 columns
                 let NUM_ROWS = params.get('rows') || 10;
                 let NUM_COLS = params.get('cols') || 10;
 
-                logic = new MineSweeper(NUM_ROWS, NUM_COLS);
+                logic = new MineSweeper(NUM_ROWS, NUM_COLS, gameID);
 
                 // Set and populate the graphical board
                 board = document.getElementById('board');
