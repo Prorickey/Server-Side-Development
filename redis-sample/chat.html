@@ -1,0 +1,31 @@
+<html>
+    <head></head>
+    <body>
+        <script type="text/javascript">
+            const sendMessage = (event) => {
+                event.preventDefault();
+                const data = new FormData(event.target);
+                fetch("/chat", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    },
+                    body: JSON.stringify({
+                        message: data.get("message")
+                    })
+                })
+            }
+        </script>
+        <form onsubmit="sendMessage()">
+            <input name="message">
+            <button>Send message</button>
+        </form>
+        <script type="text/javascript">
+            let stream = new EventSource("/stream")
+            stream.onmessage = (event) => {
+                let data = event.data.split(" ")
+                document.body.innerHTML += `<p>Message ${data[0]}: ${data[1]}</p>`
+            }
+        </script>
+    </body>
+</html>

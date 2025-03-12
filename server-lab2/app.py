@@ -47,6 +47,12 @@ def createGame(game):
 def serve_static(filename="login"):
     return send_from_directory("./static/", f"{filename}.html")
 
+@app.route("/stream")
+def subscribe():
+    def emitter():
+        while True:
+            yield 'data: <data>\n\n'
+
 @app.route("/login", methods=["POST"])
 def loginPost():
     user = request.form.get("user")
