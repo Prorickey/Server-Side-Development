@@ -17,19 +17,19 @@ app = Flask(__name__)
 MineSweeper = games.games['MineSweeper']
 running_games = dict()
 
-@app.route('/<game>/game', methods=["GET"]) 
-def indexGame():
+@app.route('/<gameName>/game', methods=["GET"]) 
+def indexGame(gameName):
     # Check if game id is in query params
     if 'id' not in request.args:
         return "Error: no game id"
     
     id = request.args.get("id") # Get game id from query params
     
-    game = running_games.get(id) # Get game from running games - can be None
+    game = running_games.get(uuid.UUID(id)) # Get game from running games - can be None
     if game is None: # If game is not found, return error
         return f"Error: game with id `{id}` not found"
     
-    return send_file(f"games/{game}/{game}.html")
+    return send_file(f"games/{gameName}/{gameName}.html")
 
 @app.route('/<game>/game', methods=["PUT"])
 def playGame():
@@ -88,12 +88,13 @@ def playGame():
     else:
         return jsonify(status="error", message="Invalid action")
 
-@app.route('/<game>/game', methods=["POST"]) 
-def createGame(game):
+@app.route('/<gameName>/game', methods=["POST"]) 
+def createGame(gameName="minesweeper"):
+    print(request.form)
     data = dict()
     params = ["rows", "cols", "name"]
     for param in params:
-        if param not in request.args and param not in request.args:
+        if param not in request.args and param not in request.form:
             return f"Error: missing {param}"
         
         data[param] = request.args.get(param) if param in request.args else request.form.get(param)
@@ -102,11 +103,12 @@ def createGame(game):
     cols = data['cols']
     name = data['name']
 
-    game = MineSweeper(rows, cols)
+    game = MineSweeper(int(rows), int(cols))
+    game.name = name
     id = uuid.uuid4()
     running_games[id] = game
 
-    return redirect(f"/{game}/game?id={id}")
+    return redirect(f"/{gameName}/game?id={id}")
 
 @app.route("/", methods=["GET"])
 @app.route("/<path:filename>", methods=["GET"])
@@ -132,8 +134,8 @@ def stream():
 
     return Response(emitter(), mimetype="text/event-stream")
 
-@app.route("/games/<game>", methods=["POST"])
-def getGame(game):
-    return send_file(f"games/{game}/{game}.html")
+@app.route("/games/<game>", methods=["GET"])
+def getGame(game="minesweeper"):
+    return send_file(f"./games/{game}/intro.html")
 
 app.run(port=8080)
