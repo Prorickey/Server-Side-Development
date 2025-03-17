@@ -66,12 +66,9 @@ def playGame(gameName):
             if res == False:
                 return jsonify(status="error", data="Invalid move")
         
-        json_data = jsonify(data={"board": game.get_board(), "gameOver": game.gameOver, "score": game.score})
-        print(json_data)
-        
-        db.publish(id, json_data)
+        db.publish(id, "board")
 
-        return json_data
+        return jsonify(data={"board": game.get_board(), "gameOver": game.gameOver, "score": game.score})
     
     elif action == "space":
         row = data.get("row")

@@ -84,18 +84,21 @@ class MineSweeper:
                     self.__numMines += 1
 
                     # Deduct one from adjacent spaces
-                    for r in range(row-1, row+1):
-                        for c in range(col-1, col+1):
+                    for r in range(row-1, row+2):
+                        for c in range(col-1, col+2):
 
                             if r >= 0 and r < self.rows and c >= 0 and c < self.cols:
                                 if self.__board[r][c] != -self.__MINE:
                                     self.__board[r][c] -= 1
-        
+
         # Set zeros to their covered values
         for row in range(self.rows):
             for col in range(self.cols):
                 if self.__board[row][col] == 0:
                     self.__board[row][col] = MineSweeper.__COVERED_ZERO
+
+        print(self.__numMines)
+        self.printBoard()
 
 
     def pickSpace(self, row, col, toggleFlag = False):
@@ -189,8 +192,7 @@ class MineSweeper:
             return self.__board[row][col]
 
         if self.__board[row][col] < -MineSweeper.__FLAG_MOD:
-            return self.FLAG
-        
+            return self.__FLAG
 
         if self.__board[row][col] < 0:
             return self.__OPEN
@@ -256,6 +258,7 @@ class MineSweeper:
 
             board.append(r)
 
+        print(board)
         return board
 
 if __name__ == '__main__':

@@ -331,10 +331,10 @@
                         return resp.json()
                     })
                     
-                    this.gameOver = data.data.gameOver
+                    this.#gameOver = data.data.gameOver
                     this.#board = data.data.board
-                    this.score = data.data.score
-                    if(data.includes("error")) return false
+                    this.#score = data.data.score
+                    if(data.data['error']) return false
                     else return true
                 }
 
@@ -543,6 +543,7 @@
 
                 // Updates the timer
                 setInterval(async function(){
+                    console.log("Timmer")
                     document.getElementById('timer').textContent = Math.floor((await logic.time)/1000)
                 }, 1000)
 
@@ -565,7 +566,7 @@
                         let row = parseInt(space.getAttribute('data-row'))
                         let col = parseInt(space.getAttribute('data-col'))        
 
-                        let value = logic.getSpace(row, col);
+                        let value = await logic.getSpace(row, col);
                         
                         // Add/Remove the correct CSS class to each space
                         if( value >= 0 ){
@@ -614,7 +615,7 @@
                     event.target.removeEventListener('mouseup', this);
 
                     let isValid = await logic.pickSpace(row, col)
-                    if( isValid){
+                    if(isValid){
                         event.target.classList.add('selected');
                     }
                     await updateBoard();
