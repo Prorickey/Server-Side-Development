@@ -313,59 +313,29 @@
                  * @param {bool} toogleFlag true to toggle a flag placement
                  * @return {boolean} true if the move was valid, false otherwise
                  */
-                pickSpace(row, col, toggleFlag = false){
-                    
-                    if( this.#gameOver ){
-                        return false;
-                    }
-                    
-                    if(row < 0 || row >= this.rows || col < 0 || col >= this.cols){
-                        return false;
-                    }
-
-                    // Already picked
-                    if( this.#board[row][col] >= 0 ){
-                        return false;
-                    }
-
-                    // Toggle the Flag
-                    if( toggleFlag ){
-                        let mod = -MineSweeper.#FLAG_MOD;
-                        if( this.#board[row][col] < mod ){
-                            mod *= -1
-                        }
-
-                        this.#board[row][col] += mod;                        
-                        return true;
-                    }
-
-                    // Flagged spaces cannot be picked
-                    if( this.#board[row][col] < -MineSweeper.#FLAG_MOD){
-                        return false;
-                    }
-
-
-                    this.#uncoverSpace(row, col)
-                    this.#score--;
-                    if( this.#board[row][col] == 0){
-                        // Hit a zero, uncover the spaces around this one
-                        for( let r = row-1; r <= row+1; r++ ){
-                            for( let c = col-1; c<=col+1; c++){
-                                this.pickSpace(r,c);
+                async pickSpace(row, col, toggleFlag = false){
+                    const data = await fetch("/minesweeper/game?id=" + this.#gameID, {
+                        method: 'PUT',
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            action: "space",
+                            data: {
+                                row: row,
+                                col: col,
+                                flag: toggleFlag
                             }
-                        }
-                    }
-                    else if( this.#board[row][col] == this.MINE ){
-                        // Losing Free the score and time taken
-                        this.#gameOver = -1;
-                        this.#startTime = -1*this.time
-                    }
+                        })
+                    }).then(resp => {
+                        return resp.json()
+                    })
                     
-                    // Winning!
-                    if( this.#score == this.#numMines ){
-                        this.#gameOver = 1;
-                        this.#startTime = -1*this.time
-                    }
+                    this.gameOver = data.data.gameOver
+                    this.#board = data.data.board
+                    this.score = data.data.score
+                    if(data.includes("error")) return false
+                    else return true
                 }
 
                 #uncoverSpace(row, col){
@@ -396,26 +366,24 @@
                  * @param {int} col the column to query (starting at zero)
                  * @return {int} value at (row,col) if uncovered, OPEN if covered or invalid
                  */
-                getSpace(row, col){
-                    if( row < 0 || row >= this.rows || col < 0 || col >= this.cols){
-                        return this.OPEN;
-                    }
+                async getSpace(row, col) { // async makes it return a promise
+                    const data = await fetch("/minesweeper/game?id=" + this.#gameID, {
+                        method: 'PUT',
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            action: "space",
+                            data: {
+                                row: row,
+                                col: col
+                            }
+                        })
+                    }).then(resp => {
+                        return resp.json()
+                    })
 
-                    // Game's Over... uncover the space!
-                    if(this.gameOver){
-                        this.#uncoverSpace(row, col);
-                        return this.#board[row][col]
-                    }
-
-                    if( this.#board[row][col] < -MineSweeper.#FLAG_MOD ){
-                        return this.FLAG;
-                    }
-
-                    if( this.#board[row][col] < 0 ){
-                        return this.OPEN;
-                    }
-
-                    return this.#board[row][col];
+                    return data.data
                 }
 
                 /**
@@ -451,32 +419,88 @@
                  * @return {number} the calculated score of the game
                  */
                 get score() {
-                    return this.#score;
+                    return new Promise(async (res, rej) => {
+                        const data = await fetch("/minesweeper/game?id=" + this.#gameID, {
+                            method: 'PUT',
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({
+                                action: "score"
+                            })
+                        }).then(resp => {
+                            return resp.json()
+                        })
+
+                        res(data.data)
+                    })
                 }
 
                 /**
                  * @return {int} seconds which have passed in the game
                  */
                 get time() {
-                    if( this.#startTime <= 0 ){
-                        return Math.abs(this.#startTime);
-                    }
+                    return new Promise(async (res, rej) => {
+                        const data = await fetch("/minesweeper/game?id=" + this.#gameID, {
+                            method: 'PUT',
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({
+                                action: "time"
+                            })
+                        }).then(resp => {
+                            return resp.json()
+                        })
 
-                    return new Date().getTime() - this.#startTime
+                        res(data.data)
+                    })
                 }
 
                 /**
                  * @return {string} name of the player
                  */
                 get name() {
+                    return new Promise(async (res, rej) => {
+                        const data = await fetch("/minesweeper/game?id=" + this.#gameID, {
+                            method: 'PUT',
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({
+                                action: "name",
+                                data: {}
+                            })
+                        }).then(resp => {
+                            return resp.json()
+                        })
 
+                        res(data.data)
+                    })
                 }
 
                 /**
                  * @param {string} n new name of the player
                  */
                 set name( n ){
+                    return new Promise(async (res, rej) => {
+                        const data = await fetch("/minesweeper/game?id=" + this.#gameID, {
+                            method: 'PUT',
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({
+                                action: "name",
+                                data: {
+                                    name: n
+                                }
+                            })
+                        }).then(resp => {
+                            return resp.json()
+                        })
 
+                        res(data.data)
+                    })
                 }
             }
 

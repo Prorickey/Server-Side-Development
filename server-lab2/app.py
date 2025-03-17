@@ -52,12 +52,16 @@ def playGame():
     elif action == "pick":
         row = data.get("row")
         col = data.get("col")
+        flag = data.get("flag")
 
-        res = game.pickSpace(row, col)
-        if res == False:
-            return jsonify(status="error", data="Invalid move")
+        if flag:
+            res = game.flagSpace(row, col)
+        else:
+            res = game.pickSpace(row, col)
+            if res == False:
+                return jsonify(status="error", data="Invalid move")
         
-        json_data = jsonify(data={"board": game.pickSpace(row, col), "gameOver": game.gameOver, "score": game.score})
+        json_data = jsonify(data={"board": game.get_board(), "gameOver": game.gameOver, "score": game.score})
         
         db.publish(id, json_data)
 
@@ -76,6 +80,9 @@ def playGame():
         return jsonify(data=game.time)
     
     elif action == "name":
+        if "name" in data:
+            game.name = data.get("name")
+
         return jsonify(data=game.name)
 
     else:
@@ -124,5 +131,9 @@ def stream():
                 yield f"data: {message.decode()}\n\n"
 
     return Response(emitter(), mimetype="text/event-stream")
+
+@app.route("/games/<game>", methods=["POST"])
+def getGame(game):
+    return send_file(f"games/{game}/{game}.html")
 
 app.run(port=8080)
