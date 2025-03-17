@@ -53,19 +53,4 @@ def subscribe():
         while True:
             yield 'data: <data>\n\n'
 
-@app.route("/login", methods=["POST"])
-def loginPost():
-    user = request.form.get("user")
-    password = request.form.get("password")
-    mode = request.form.get("mode")
-    return send_file("./static/login.html")
-
-@app.route("/games/minesweeper", methods=["GET"])
-def minesweeper():
-    return send_file("./games/minesweeper/intro.html")
- 
-@app.route("/games/minesweeper/game", methods=["GET"])
-def minesweeperFile():
-    return send_file("./games/minesweeper/minesweeper.html")
-
 app.run(port=8080)
