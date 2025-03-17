@@ -1,6 +1,14 @@
 import uuid
-from flask import Flask, jsonify, redirect, request, send_file, send_from_directory
+from flask import Flask, Response, jsonify, redirect, request, send_file, send_from_directory
 import games
+import redis
+
+db = redis.StrictRedis()
+try:
+    db.ping()
+except:
+    print("ERROR: Redis unavailable")
+    db = None
 
 # Disable static folder because anything under /static should return 404
 app = Flask(__name__)
@@ -27,13 +35,13 @@ def indexGame():
 def playGame():
     # Check if game id is in query params
     if 'id' not in request.args:
-        return jsonify(status="error", message=f"Error: no game id")
+        return jsonify(status="error", data=f"Error: no game id")
     
     id = request.args.get("id") # Get game id from query params
 
     game = running_games.get(id) # Get game from running games - can be None
     if game is None: # If game is not found, return error
-        return jsonify(status="error", message=f"Error: game with id `{id}` not found")
+        return jsonify(status="error", data=f"Error: game with id `{id}` not found")
     
     action = request.json.get("action")
     data = request.json.get("data")
@@ -47,10 +55,29 @@ def playGame():
 
         res = game.pickSpace(row, col)
         if res == False:
-            return jsonify(status="error", message="Invalid move")
+            return jsonify(status="error", data="Invalid move")
+        
+        json_data = jsonify(data={"board": game.pickSpace(row, col), "gameOver": game.gameOver, "score": game.score})
+        
+        db.publish(id, json_data)
 
-        return jsonify(data=game.pickSpace(row, col))
+        return json_data
     
+    elif action == "space":
+        row = data.get("row")
+        col = data.get("col")
+
+        return jsonify(data=game.getSpace(row, col))
+    
+    elif action == "score":
+        return jsonify(data=game.score)
+    
+    elif action == "time":
+        return jsonify(data=game.time)
+    
+    elif action == "name":
+        return jsonify(data=game.name)
+
     else:
         return jsonify(status="error", message="Invalid action")
 
@@ -80,9 +107,22 @@ def serve_static(filename="login"):
     return send_from_directory("./static/", f"{filename}.html")
 
 @app.route("/stream")
-def subscribe():
+def stream():
+    # Check if game id is in query params
+    if 'id' not in request.args:
+        return jsonify(status="error", data=f"Error: no game id")
+    
+    id = request.args.get("id") # Get game id from query params
+
     def emitter():
-        while True:
-            yield 'data: <data>\n\n'
+        pubsub = db.pubsub()
+        pubsub.subscribe(id)
+
+        for message in pubsub.listen():
+            message = message["data"]
+            if type(message) == bytes:
+                yield f"data: {message.decode()}\n\n"
+
+    return Response(emitter(), mimetype="text/event-stream")
 
 app.run(port=8080)

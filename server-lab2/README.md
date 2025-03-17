@@ -1,4 +1,5 @@
 # Flask Minesweeper App
+`docker run --name minesweeper-redis -p 6379:6379 -d redis`
 
 ## Palette
 https://coolors.co/00120b-35605a-6b818c-d8e4ff-31e981
