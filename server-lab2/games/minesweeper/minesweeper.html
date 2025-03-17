@@ -320,7 +320,7 @@
                             "Content-Type": "application/json"
                         },
                         body: JSON.stringify({
-                            action: "space",
+                            action: "pick",
                             data: {
                                 row: row,
                                 col: col,
@@ -508,7 +508,7 @@
             let logic = null;           // the Minesweeper logic object
 
 
-            function init(){
+            async function init(){
                 let params = new URLSearchParams(window.location.search)
 
                 // TODO: No id means playing by yourself
@@ -539,11 +539,11 @@
                     }
                 }
 
-                document.getElementById('numOpenSpaces').textContent = logic.score;
+                document.getElementById('numOpenSpaces').textContent = await logic.score;
 
                 // Updates the timer
-                setInterval(function(){
-                    document.getElementById('timer').textContent = Math.floor(logic.time/1000)
+                setInterval(async function(){
+                    document.getElementById('timer').textContent = Math.floor((await logic.time)/1000)
                 }, 1000)
 
                 logic.startGame()
@@ -559,7 +559,7 @@
                 }
 
                 // Internal algorithm to update the board
-                function updateBoard(){
+                async function updateBoard(){
                     let spaces = board.getElementsByClassName('space')
                     for( let space of spaces ){
                         let row = parseInt(space.getAttribute('data-row'))
@@ -586,14 +586,16 @@
                     }
 
                     // Update score
-                    document.getElementById('numOpenSpaces').textContent = logic.score;
+                    document.getElementById('numOpenSpaces').textContent = await logic.score;
+
+                    let gameOver = await logic.gameOver;
 
                     // Update the Win/Lose Graphic
-                    if( logic.gameOver ){
+                    if( gameOver ){
                         let message = "You Win!";
                         let scoreClass = 'win'
                         let name = document.getElementById('name');
-                        if( logic.gameOver < 0 ){
+                        if( gameOver < 0 ){
                             message = "You Lose!"
                             scoreClass = 'lose';
                         }
@@ -607,22 +609,22 @@
                 let col = parseInt(event.target.getAttribute('data-col'))
 
                 // If the user actually clicks
-                let pSpace = function(event){
+                let pSpace = async function(event){
                     clearTimeout(longPressTimer);    
                     event.target.removeEventListener('mouseup', this);
 
-                    let isValid = logic.pickSpace(row, col)
+                    let isValid = await logic.pickSpace(row, col)
                     if( isValid){
                         event.target.classList.add('selected');
                     }
-                    updateBoard();
+                    await updateBoard();
                 }
 
                 const LONG_PRESS_TIMER_MS = 250;
                 // Allow long press
-                let longPressTimer = setTimeout(function(){
-                    logic.pickSpace(row, col, true)  
-                    updateBoard()
+                let longPressTimer = setTimeout(async function(){
+                    await logic.pickSpace(row, col, true)  
+                    await updateBoard()
                     
                     event.target.removeEventListener('mouseup', pSpace);
                 }, LONG_PRESS_TIMER_MS)

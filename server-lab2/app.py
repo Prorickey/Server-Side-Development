@@ -31,28 +31,33 @@ def indexGame(gameName):
     
     return send_file(f"games/{gameName}/{gameName}.html")
 
-@app.route('/<game>/game', methods=["PUT"])
-def playGame():
+@app.route('/<gameName>/game', methods=["PUT"])
+def playGame(gameName):
     # Check if game id is in query params
     if 'id' not in request.args:
         return jsonify(status="error", data=f"Error: no game id")
     
     id = request.args.get("id") # Get game id from query params
 
-    game = running_games.get(id) # Get game from running games - can be None
+    game = running_games.get(uuid.UUID(id)) # Get game from running games - can be None
     if game is None: # If game is not found, return error
         return jsonify(status="error", data=f"Error: game with id `{id}` not found")
     
     action = request.json.get("action")
     data = request.json.get("data")
 
+    print("Request Start")
+    print(action)
+
     if action == "board":
         return jsonify(data=game.get_board())
     
     elif action == "pick":
-        row = data.get("row")
-        col = data.get("col")
-        flag = data.get("flag")
+        row = data["row"]
+        col = data["col"]
+        flag = data["flag"]
+
+        print(data)
 
         if flag:
             res = game.flagSpace(row, col)
@@ -62,6 +67,7 @@ def playGame():
                 return jsonify(status="error", data="Invalid move")
         
         json_data = jsonify(data={"board": game.get_board(), "gameOver": game.gameOver, "score": game.score})
+        print(json_data)
         
         db.publish(id, json_data)
 
@@ -90,7 +96,6 @@ def playGame():
 
 @app.route('/<gameName>/game', methods=["POST"]) 
 def createGame(gameName="minesweeper"):
-    print(request.form)
     data = dict()
     params = ["rows", "cols", "name"]
     for param in params:

@@ -108,7 +108,7 @@ class MineSweeper:
         @return {boolean} true if the move was valid, false otherwise
         '''
         
-        if self.__gameOver != None:
+        if self.__gameOver != 0:
             return False
         
         if row < 0 or row >= self.rows or col < 0 or col >= self.cols:
@@ -181,7 +181,7 @@ class MineSweeper:
         '''
 
         if row < 0 or row >= self.rows or col < 0 or col >= self.cols:
-            return self.OPEN
+            return self.__OPEN
 
         # Game's Over... uncover the space!
         if self.gameOver:
@@ -193,7 +193,7 @@ class MineSweeper:
         
 
         if self.__board[row][col] < 0:
-            return self.OPEN
+            return self.__OPEN
 
         return self.__board[row][col]
 
@@ -252,14 +252,14 @@ class MineSweeper:
         for row in range(self.rows):
             r = []
             for col in range(self.cols):
-                r[col] = self.getSpace(row, col)
+                r.append(self.getSpace(row, col))
 
             board.append(r)
 
         return board
 
 if __name__ == '__main__':
-    game = MineSweeper(5, 5)
-    game.pickSpace(1,1)
+    game = MineSweeper(10, 10)
+    game.pickSpace(4,4)
     game.printBoard()
     print(game.gameOver)
