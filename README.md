@@ -1,5 +1,4 @@
 # Server Side Development
 
-Trevor Bedson
-bedson26t
-bedson26t@ncssm.edu
+If your in my class, please don't just copy my code 1 for 1, and don't get me in trouble! 
+Use this as a reference at most.
