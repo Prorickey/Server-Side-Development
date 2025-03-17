@@ -1,5 +1,5 @@
 import uuid
-from flask import Flask, redirect, request, send_file, send_from_directory
+from flask import Flask, jsonify, redirect, request, send_file, send_from_directory
 import games
 
 # Disable static folder because anything under /static should return 404
@@ -9,18 +9,50 @@ app = Flask(__name__)
 MineSweeper = games.games['MineSweeper']
 running_games = dict()
 
-@app.route('/<game>/game', methods=["GET", "PUT"]) 
-def indexGame(game):
+@app.route('/<game>/game', methods=["GET"]) 
+def indexGame():
+    # Check if game id is in query params
     if 'id' not in request.args:
         return "Error: no game id"
     
-    id = request.args.get("id")
+    id = request.args.get("id") # Get game id from query params
     
-    game = running_games.get(id)
-    if game is None:
+    game = running_games.get(id) # Get game from running games - can be None
+    if game is None: # If game is not found, return error
         return f"Error: game with id `{id}` not found"
     
     return send_file(f"games/{game}/{game}.html")
+
+@app.route('/<game>/game', methods=["PUT"])
+def playGame():
+    # Check if game id is in query params
+    if 'id' not in request.args:
+        return jsonify(status="error", message=f"Error: no game id")
+    
+    id = request.args.get("id") # Get game id from query params
+
+    game = running_games.get(id) # Get game from running games - can be None
+    if game is None: # If game is not found, return error
+        return jsonify(status="error", message=f"Error: game with id `{id}` not found")
+    
+    action = request.json.get("action")
+    data = request.json.get("data")
+
+    if action == "board":
+        return jsonify(data=game.get_board())
+    
+    elif action == "pick":
+        row = data.get("row")
+        col = data.get("col")
+
+        res = game.pickSpace(row, col)
+        if res == False:
+            return jsonify(status="error", message="Invalid move")
+
+        return jsonify(data=game.pickSpace(row, col))
+    
+    else:
+        return jsonify(status="error", message="Invalid action")
 
 @app.route('/<game>/game', methods=["POST"]) 
 def createGame(game):

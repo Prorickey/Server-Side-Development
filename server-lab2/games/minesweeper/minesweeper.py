@@ -245,6 +245,16 @@ class MineSweeper:
         for row in self.__board:
             print(row)
 
+    def get_board(self):
+        '''Returns the board as a dictionary'''
+
+        board = dict()
+        for row in range(self.rows):
+            for col in range(self.cols):
+                board[f"{row},{col}"] = self.getSpace(row, col)
+
+        return board
+
 if __name__ == '__main__':
     game = MineSweeper(5, 5)
     game.pickSpace(1,1)
