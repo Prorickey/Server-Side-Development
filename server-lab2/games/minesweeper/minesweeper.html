@@ -507,12 +507,62 @@
             let board = null;           // The parent board graphical element
             let logic = null;           // the Minesweeper logic object
 
+            // Internal algorithm to update the board
+            async function updateBoard(){
+                let spaces = board.getElementsByClassName('space')
+                for( let space of spaces ){
+                    let row = parseInt(space.getAttribute('data-row'))
+                    let col = parseInt(space.getAttribute('data-col'))        
+
+                    let value = await logic.getSpace(row, col);
+                    
+                    // Add/Remove the correct CSS class to each space
+                    if( value >= 0 ){
+                        if( value === logic.MINE ){
+                            space.classList.add('mine')
+                        }
+                        else {
+                            space.classList.add('selected');
+                            space.textContent = value;
+                        }
+                    }
+                    else if( value == logic.FLAG){
+                        space.classList.add('flag')
+                    }
+                    else {
+                        space.classList.remove('flag')
+                    }
+                }
+
+                // Update score
+                document.getElementById('numOpenSpaces').textContent = await logic.score;
+
+                let gameOver = await logic.gameOver;
+
+                // Update the Win/Lose Graphic
+                if( gameOver ){
+                    let message = "You Win!";
+                    let scoreClass = 'win'
+                    let name = document.getElementById('name');
+                    if( gameOver < 0 ){
+                        message = "You Lose!"
+                        scoreClass = 'lose';
+                    }
+                    name.textContent = message;
+                    document.getElementsByClassName('scoreboard')[0].classList.add(scoreClass);
+                }
+            }
 
             async function init(){
                 let params = new URLSearchParams(window.location.search)
 
                 // TODO: No id means playing by yourself
                 gameID = params.get('id')
+
+                let stream = new EventSource("/stream?id=" + gameID)
+                stream.onmessage = (event) => {
+                    updateBoard()
+                }
                 
                 // Defaults to 10 rows and 10 columns
                 let NUM_ROWS = params.get('rows') || 10;
@@ -557,52 +607,6 @@
 
                 if(logic.gameOver){
                     return false;
-                }
-
-                // Internal algorithm to update the board
-                async function updateBoard(){
-                    let spaces = board.getElementsByClassName('space')
-                    for( let space of spaces ){
-                        let row = parseInt(space.getAttribute('data-row'))
-                        let col = parseInt(space.getAttribute('data-col'))        
-
-                        let value = await logic.getSpace(row, col);
-                        
-                        // Add/Remove the correct CSS class to each space
-                        if( value >= 0 ){
-                            if( value === logic.MINE ){
-                                space.classList.add('mine')
-                            }
-                            else {
-                                space.classList.add('selected');
-                                space.textContent = value;
-                            }
-                        }
-                        else if( value == logic.FLAG){
-                            space.classList.add('flag')
-                        }
-                        else {
-                            space.classList.remove('flag')
-                        }
-                    }
-
-                    // Update score
-                    document.getElementById('numOpenSpaces').textContent = await logic.score;
-
-                    let gameOver = await logic.gameOver;
-
-                    // Update the Win/Lose Graphic
-                    if( gameOver ){
-                        let message = "You Win!";
-                        let scoreClass = 'win'
-                        let name = document.getElementById('name');
-                        if( gameOver < 0 ){
-                            message = "You Lose!"
-                            scoreClass = 'lose';
-                        }
-                        name.textContent = message;
-                        document.getElementsByClassName('scoreboard')[0].classList.add(scoreClass);
-                    }
                 }
 
                 // Get the row and column clicked on
