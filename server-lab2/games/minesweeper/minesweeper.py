@@ -43,7 +43,7 @@ class MineSweeper:
         '''
         
         self.__numMines = 0
-        self.__startTime = 0
+        self.__startTime = time.time() * 1000
         self.__gameOver = 0
 
         self.__board = []
