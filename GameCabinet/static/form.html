@@ -1,0 +1,27 @@
+<html>
+    <head></head>
+    <body>
+        <form action="/form" method="POST">
+            <input id='password' name="user" type='password' />
+            <button>&#128274;</button>
+            
+            <input type="submit"/>
+        </form>
+	<div id='response'>
+	</div>
+
+	<script type='text/javascript'>
+        console.log( "START ")
+        fetch('www.google.com').then(async function(data){
+            console.log("IN")
+            data.json().then(function(d){
+                console.log( d )
+            }).catch(async function(d){
+                console.log("ERROR")
+            })
+            console.log("OUT")
+        })
+        console.log("END")
+	</script>
+    </body>
+</html>
