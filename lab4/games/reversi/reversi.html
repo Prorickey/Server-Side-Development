@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <style type="text/css">
+            * {
+                padding: 0;
+                margin: 0;
+                box-sizing: border-box;
+            }
+
+            :root {
+                --color-bg: 63, 195, 128,1;
+                --color-fg: 255, 255, 255;
+                --color-selected: 63, 195, 128, 0.75;
+                --color-player1: 0,0,0,1;
+                --color-player2: 255,255,255,1;
+            }
+
+            body.maincontainer {
+                display: flex;
+                flex-direction: column;
+
+                width: 100vw;
+                height: 100vh;
+            }
+            header.scoreboard {
+                display: flex;
+                justify-content: space-around;
+
+                font-size: 2em;
+                font-weight: bold;
+                padding: 1em;
+                border-bottom: 5px inset black;
+            }
+            header.scoreboard.win {
+                background: rgba(var(--color-flag));
+            }
+            header.scoreboard.lose {
+                background: rgba(var(--color-mine));
+            }
+
+            section#board {
+                --num-rows: 10;
+                --num-cols: 10;
+
+                background: black;
+
+                flex-grow: 1;
+
+                display: grid;
+                grid-template-rows: repeat(var(--num-rows), 1fr);
+                grid-template-columns: repeat(var(--num-cols), 1fr);
+                padding: 5px;
+                padding-top: 0;
+            }
+
+            div.space {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                border: 2px outset black;
+
+                background: rgba(var(--color-bg));
+                color: rgba(var(--color-fg));
+
+                border-radius: 10px;
+                font-weight: bold;
+                font-size: 2em;
+            }
+            div.space:hover:not(.selected){
+                background-color: darkslateblue;
+            }
+
+            div.space.selected {
+                position: relative;
+                border-width: 1px;
+                background: rgba(var(--color-selected));
+                box-shadow: inset -10px -5px black, -6px -5px rgba(var(--color-selected), 0.75);
+                border-radius: 2px;
+            }
+            div.space.selected.player1::after{
+                content: " ";
+                position: absolute;
+                width: 60%;
+                height: 60%;
+                
+                background-color: rgba(var(--color-player1));
+                border-radius: 50%;
+                border: 3px solid rgba(var(--color-mine));
+            }
+            div.space.selected.player2::after{
+                content: " ";
+                position: absolute;
+                width: 60%;
+                height: 60%;
+                
+                background-color: rgba(var(--color-player2));
+                border-radius: 50%;
+                border: 3px solid rgba(var(--color-mine));
+            }
+
+            section.player{
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+            }
+            section.player.turn{
+                margin-bottom: -10px;
+                border-bottom: 10px solid green;
+            }
+
+            form {
+                display: flex;
+                flex-wrap: nowrap;
+                border: 1px solid black;
+            }
+            form:has(input:disabled){
+                border-color: transparent;
+            }
+            form > input {
+                border: 0;
+                font-size: 1.25rem;
+                padding: 0.25rem;
+            }
+            form > input:disabled{
+                font-weight: bold;
+                text-align: center;
+            }
+        </style>
+    </head>
+    <body class="maincontainer">
+        <header class="scoreboard">
+            <section class='player' id="player1">
+                <div class="name">
+                    <form>
+                        <input name="name"/>
+                        <button name="action" value="join">Join</button>
+                    </form>
+                </div>
+                <div class="score">
+                    0
+                </div>
+            </section>
+            <section class="player" id="player2">
+                <div class="name">
+                    <form>
+                        <input name="name"/>
+                        <button name='action' value="join">Join</button>
+                    </form>
+                </div>
+                <div class="score">
+                    0
+                </div>
+            </section>
+        </header>
+
+        <section id="board">         
+        </section>
+
+        <script type="text/javascript">
+
+            /**
+             * 
+             * The Public Interface is not allowed to change!
+             * Make sure you add a JSDoc comment to every non-private method or attribute
+             */
+            class Reversi {
+
+                static #PLAYER_1 = -1
+                static #PLAYER_2 = 1
+                static #OPEN = 0 
+
+                get PLAYER_1(){
+                    return Reversi.#PLAYER_1
+                }
+                get PLAYER_2(){
+                    return Reversi.#PLAYER_2
+                }
+                get OPEN(){
+                    return Reversi.#OPEN
+                }
+
+                #board   
+                #rows
+                #cols           
+
+                #startTime          // ms
+                #gameOver           // 1 = Player 1, -1 = Player 2, 0 = keep going
+                #numMines
+                
+                #scores             // -1 = Player 1, 1 = Player 2
+                #turn               
+                #names              
+
+                #gameID             // remote ID of the game
+
+                /**
+                 * Create a populating Reversi board
+                 *
+                 */
+                constructor(rows, cols, id = null){    
+                    this.#board = new Map()
+                    this.#rows = 8
+                    this.#cols = 8
+                    this.#turn = this.PLAYER_1
+                    this.#gameID = id
+
+                    this.#scores = new Map()
+                    this.#scores.set(-1, 0)
+                    this.#scores.set(1, 0)
+
+                    this.#names = new Map();
+                }
+
+                /**
+                 * Sync with the server's game
+                 *
+                 * @param {str} id the game ID on the server
+                 */
+                async init(id){
+                    this.#gameID = id;
+                    if( id === null ){
+                        return;
+                    }
+                    
+                    let packet = {
+                        'action' : 'board',
+                        'data' : {}
+                    }
+                        
+                    let response = await fetch('', {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type' : 'application/json'
+                        },
+                        body: JSON.stringify(packet)
+                    })
+                    packet = await response.json();
+                    let data = packet.data
+
+                    for( let space in data['board']){
+                        if( data['board'][space] !== 0 ){
+                            this.#board.set( space, data['board'][space])
+                        }
+                    }
+
+                    this.#gameOver = data['gameOver']
+                    this.#turn = parseInt(data['turn'])
+                   
+                    // Update Scores
+                    this.#scores.clear()
+                    for( const key in data['score'] ){
+                        this.#scores.set(parseInt(key), parseInt(data['score'][key]))
+                    }
+
+                    // Update Names
+                    this.#names.clear()
+                    for( const key in data['names'] ){
+                        this.#names.set(parseInt(key), data['names'][key])
+                    }
+
+                }
+
+                /**
+                 * Add/Remove a player from the game
+                 * 
+                 * @param spot {int} which player spot to add/remove
+                 * @param name {str} name of the player, null to remove
+                 * @return {bool} true if successful, false on failure
+                 */
+                async changePlayer(spot, name = null){
+                    let player = 'player1'
+                    if(spot !== player){
+                        player = 'player2'
+                    }
+
+                    let action = 'join'
+                    if( name === null ){
+                        action = 'leave'
+                    }
+
+                    let packet = {
+                        action: 'player', 
+                        data: {
+                            change: action,
+                            spot: player, 
+                            name
+                        }
+                    }
+
+                    let response = await fetch('',{
+                        method: 'PUT', 
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(packet)
+                    })
+
+                    let json = await response.json().catch(function(err){
+                        console.log(err)
+                    })
+
+                    let data = json['data']
+                    if( data['change'] == 'leave'){
+                        this.#names.delete(data['spot'])
+                    }
+                    else {
+                        this.#names.set(data['spot'], data['name'])
+                    }
+
+                    return true
+                }
+
+                /**
+                 * Picks a space and enforces rules of MineSweeper
+                 * 
+                 * @param {int} row row to select (start at zero)
+                 * @param {int} col column to select (start at zero)
+                 * @return {boolean} true if the move was valid, false otherwise
+                 */
+                async pickSpace(row, col){
+                    
+                    if( this.#gameOver ){
+                        return false;
+                    }
+
+                    if(row < 0 || row >= this.rows || col < 0 || col >= this.cols){
+                        return false;
+                    }
+
+                    // Already picked
+                    if( this.#board.has(`(${row},${col})`) ) {
+                        return false;
+                    }
+
+
+                    if( this.#gameID !== null ){
+                        let packet = {
+                            'action' : 'pick',
+                            data: {
+                                'row': row,
+                                'col': col
+                            }
+                        }
+
+                        let rtn = await fetch('', {
+                            method: 'PUT', 
+                            headers : {
+                                'Content-Type' : 'application/json',
+                            },
+                            body: JSON.stringify(packet)
+                        })
+                        rtn = await rtn.json().catch(function(err){
+                            console.log(err)
+                        })
+
+                        let data = rtn.data
+                        for( let space in data['spaces']){
+                            if( data['spaces'][space] !== 0 ){
+                                this.#board.set( space, data['spaces'][space] )
+                            }
+                        }
+                        for( let space in data['score']){
+                            this.#board.set( parseInt(space), parseInt(data['spaces'][space]) )
+                        }
+                        
+
+                        return data['spaces']
+                    }                    
+                    return true;
+                }
+
+                /**
+                 * Get the status of a space
+                 * @param {int} row the row to query (starting at zero)
+                 * @param {int} col the column to query (starting at zero)
+                 * @return {int} value at (row,col) if uncovered, OPEN if covered or invalid
+                 */
+                getSpace(row, col){
+                    if( row < 0 || row >= this.rows || col < 0 || col >= this.cols){
+                        return this.OPEN;
+                    }
+
+                    if( !this.#board.has(`(${row},${col})`) ){
+                        return this.OPEN
+                    }
+
+                    return this.#board.get(`(${row},${col})`);
+                }
+
+                /**
+                 * Begins the game
+                 */ 
+                startGame() {
+                    if( this.#gameID ){
+                        return;
+                    }
+                    this.#startTime = new Date().getTime();
+                }
+
+                get names(){
+                    return new Map(this.#names)
+                }
+
+                /**
+                 * @return number of columns in the game
+                 */
+                get cols(){
+                    return this.#cols
+                }
+
+                /**
+                 * @return {int} number of rows in the game
+                 */
+                get rows() {
+                    return this.#rows
+                }
+
+                get turn(){
+                    return this.#turn
+                }
+
+                /**
+                 * The game over status of the game
+                 * @return {int} negative if loss, positive if win, zero otherwise
+                 */
+                get gameOver() {
+                    return this.#gameOver;
+                }
+
+                /**
+                 * @return {number} the calculated score of the game
+                 */
+                get score() {
+                    let rtn = new Map()
+                    for( const [player,score] of this.#scores ){
+                        rtn.set(player, score)
+                    }
+                    return rtn;
+                }
+
+                /**
+                 * @return {int} seconds which have passed in the game
+                 */
+                get time() {
+                    if( this.#startTime <= 0 ){
+                        return Math.abs(this.#startTime);
+                    }
+                    return Math.floor((new Date().getTime() - this.#startTime)/1000)
+                }
+            }
+
+            let gameID = null;          // the gameID of the current game
+            let board = null;           // The parent board graphical element
+            let logic = null;           // the Minesweeper logic object
+
+            async function init(){
+                let params = new URLSearchParams(window.location.search)
+                
+                gameID = params.get('id')
+
+                // Defaults to 8 rows and 8 columns
+                let NUM_ROWS = params.get('rows') || 8;
+                let NUM_COLS = params.get('cols') || 8;
+
+                logic = new Reversi(gameID);
+                await logic.init(gameID)
+                
+                NUM_ROWS = logic.rows
+                NUM_COLS = logic.cols
+
+                // Set and populate the graphical board
+                board = document.getElementById('board');
+                board.style.setProperty("--num-rows", NUM_ROWS)
+                board.style.setProperty("--num-cols", NUM_COLS)
+
+                for( let i = 0; i < NUM_ROWS; i++ ) {
+                    for(let j = 0; j < NUM_COLS; j++ ) {
+                        let div = document.createElement('div');
+                        div.classList.add('space')
+
+                        // Identify each button
+                        div.setAttribute("data-row", i )
+                        div.setAttribute("data-col", j )
+
+                        div.addEventListener('mousedown', handleButtonClick)
+                        board.appendChild(div);
+                    }
+                }
+
+                // Update the Player sections (name, score, turn)
+                let playerNames = document.querySelectorAll("form")
+                for( let name of playerNames ){
+                    name.addEventListener('submit', async function(event){
+                        event.preventDefault();
+
+                        let parent = event.target.parentNode
+                        let playerID = parent.parentNode.id
+                        let name = event.target.querySelector("input").value
+                        let actionButton = event.target.querySelector('button')
+
+                        if(actionButton.value == 'leave'){
+                            name = null;
+                        }
+                        await logic.changePlayer(playerID, name)
+                        updateBoard()
+                    })
+                }
+
+                updateBoard();
+                logic.startGame()
+            
+                // Setup the stream for updates
+                if( gameID ){
+                    let stream = new EventSource(`stream?id=${gameID}`)
+                    stream.onmessage = async function(msg){
+                        console.log(msg['data'])
+                        await logic.init(gameID)
+                        updateBoard()
+                    }
+                    stream.onerror = function(event){
+                        console.log("Steaming Not Available")
+                    }
+                }
+            
+            }
+
+            function updateBoard(){
+                let spaces = board.getElementsByClassName('space')
+                for( let space of spaces ){
+                    let row = parseInt(space.getAttribute('data-row'))
+                    let col = parseInt(space.getAttribute('data-col'))        
+
+                    let value = logic.getSpace(row, col);
+                    
+                    // Add/Remove the correct CSS class to each space
+                    if( value !== logic.OPEN ){
+                        space.classList.add('selected');
+                        space.textContent = value;
+                        
+                        space.classList.remove('player1')
+                        space.classList.remove('player2')
+
+                        if( value === logic.PLAYER_1 ){
+                            space.classList.add('player1')
+                        }
+                        else {
+                            space.classList.add('player2')
+                        }
+                    }
+                }
+
+                // Update score
+                let scores = logic.score
+                document.querySelector("#player1>.score").textContent = scores.get(logic.PLAYER_1)
+                document.querySelector("#player2>.score").textContent = scores.get(logic.PLAYER_2)
+
+
+                // Update the Name sections
+                let playerNames = {
+                    'player1' : -1,
+                    'player2' : 1       
+                }
+
+                let names = logic.names
+                for( let name in playerNames ){
+                    let action = 'join'
+                    let disableInput = false;
+                    let playerName = '';
+
+                    if( names.has(playerNames[name])){
+                        action = 'leave'
+                        disableInput = true;
+                        playerName = names.get(playerNames[name])
+                    }
+
+                    let inputBox = document.querySelector(`#${name} input`)
+                    inputBox.value = playerName
+                    inputBox.disabled = disableInput;
+
+                    let button = inputBox.nextElementSibling
+                    button.textContent = action.charAt(0).toUpperCase() + action.slice(1)
+                    button.value = action
+                }
+
+                // Set turn indicator
+                let theirTurn = 'player1'
+                let notThem = 'player2'
+                if( logic.turn == logic.PLAYER_2){
+                    let tmp = theirTurn;
+                    theirTurn = notThem;
+                    notThem = tmp
+                }
+
+                document.getElementById(theirTurn).classList.add('turn')
+                document.getElementById(notThem).classList.remove('turn')
+
+                // Update the Win/Lose Graphic
+                if( logic.gameOver ){
+                    let message = "You Win!";
+                    let scoreClass = 'win'
+                    if( logic.gameOver < 0 ){
+                        message = "You Lose!"
+                        scoreClass = 'lose';
+                    }
+                    name.textContent = message;
+                    document.getElementsByClassName('scoreboard')[0].classList.add(scoreClass);
+                }
+            }
+            async function handleButtonClick(event){
+                // Left Clicks only
+                if( event.buttons != 1 ){
+                    return false;
+                }
+
+                if(logic.gameOver){
+                    return false;
+                }
+
+                // Get the row and column clicked on
+                let row = parseInt(event.target.getAttribute('data-row'))
+                let col = parseInt(event.target.getAttribute('data-col'))
+                
+                let isValid = await logic.pickSpace(row, col)
+                updateBoard();
+            }
+
+            window.onload = init;
+        </script>
+    </body>
+</html>

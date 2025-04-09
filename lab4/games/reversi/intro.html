@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <style type="text/css">
+            * {
+                padding: 0;
+                margin: 0;
+                box-sizing: border-box;
+            }
+
+            :root {
+                --color-bg: 63, 195, 128,1;
+                --color-fg: 255, 255, 255;
+                --num-rows: 10;
+                --num-cols: 10;
+            }
+
+            body.maincontainer{
+                position: relative;
+            }
+
+            div#board {
+                background: black;
+                height: 100vh;
+                display: grid;
+
+                grid-template-columns: repeat(var(--num-cols), 1fr);
+                grid-template-rows: repeat(var(--num-rows), 1fr);
+            }
+            div.space{
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                border: 2px outset black;
+
+                background: rgba(var(--color-bg));
+                color: rgba(var(--color-fg));
+
+                border-radius: 10px;
+                font-weight: bold;
+                font-size: 2em;
+            }
+
+            form.options{
+                display: flex;
+                flex-direction: column;
+            
+                background-color: darkslateblue;
+                color: white;
+                position: absolute;
+                
+                border: 5px solid black;
+                border-radius: 20px;
+
+                top: 50%;
+                left: 50%;
+
+                transform: translate(-50%, -50%);
+
+                width: max-content;
+                padding: 3em;
+            }
+
+            form.options > div {
+                font-size: 1.5rem;
+                font-weight: bold;
+                padding: 0.5rem;
+            }
+            form.options > ul {
+                font-size: 14pt;
+                padding: 0.5rem;
+            }
+            button {
+                padding: 10px;
+                font-size: 2em;
+                margin: 10px;
+            }
+            
+            div.option.grid {
+                display: grid;
+                grid-template-areas: 
+                    "name number"
+                    "range range";
+            }
+
+        </style>
+    </head>
+    <body class="maincontainer">  
+        <div id="board">
+
+        </div>
+        
+        <form class="options" method='POST' action="/reversi/game">
+            <div>
+                Welcome to Non-Pass Reversi!
+            </div>
+
+            <div>
+                Rules!
+            </div>
+            <ul>
+                <li>Place tokens to surround your opponent</li>
+                <li>Oppoenent tokens surrounded are turned to your color</li>
+                <li>No Passing Allowed!</li>
+            </ul>
+            
+            
+            <button id="play" type="submit">Play Game!</button>
+        </form>
+
+        <script type="text/javascript">
+
+            let rootElement = null;
+            let board = null;
+
+            function init(){
+                rootElement = document.querySelector(':root'); 
+                board = document.getElementById('board')
+                updateBoard();
+            }
+
+
+            function updateBoard(){
+                let rootStyle = getComputedStyle(rootElement);
+                let numRows = rootStyle.getPropertyValue('--num-rows')
+                let numCols = rootStyle.getPropertyValue('--num-cols')
+
+                board.innerHTML = '';
+                for( let i = 0; i < numRows*numCols; i++ ){
+                    let div = document.createElement('div');
+                    div.classList.add('space')
+                    board.appendChild(div);
+                }
+            }
+
+            window.onload = init;
+        </script>
+    </body>
+</html>

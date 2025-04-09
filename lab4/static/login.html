@@ -1,0 +1,41 @@
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="/static/style.css"/>
+    </head>
+    <body>
+        <header>
+            Login or Register
+        </header>
+        <form action="/login" method="POST">
+            <input placeholder='username' required name="username"/>
+            <div>
+                <input placeholder='password' required name='password' type="password"/>
+                <button id="passwordVis">&#x1F512;</button>
+            </div>
+            <div>
+                <button name='mode' value="login">Login</button>
+                <button name='mode' value="register">Register</button>
+            </div>
+        </form>
+    
+        <script type="text/javascript">
+            function init(){
+                let btn = document.getElementById('passwordVis')
+                btn.addEventListener('click', function(event){
+                    event.preventDefault();
+
+                    text = "&#x1F512;"
+                    mode = 'password'
+                    if( event.target.innerHTML === "🔒" ){
+                        text = "&#x1F441;"
+                        mode = 'text'
+                    }
+                    event.target.innerHTML = text;
+                    document.querySelector('input[name="password"]').type=mode
+                })
+            }
+            window.onload = init;
+
+        </script>
+    </body>
+</html>
