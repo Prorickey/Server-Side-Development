@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, Response, request, send_file, redirect, jsonify
+from flask import Flask, request, send_file, redirect, render_template
 import redis
 import games
 
@@ -27,11 +27,10 @@ def postIndex():
     print( request.form.get('user') )   
     return send_file('static/form.html')
 
-
 @app.route("/login", methods=["GET", "POST"])
 def loginPage():
     if request.method == "GET":
-        return send_file('static/login.html')
+        return render_template('login.j2')
     
     fields = ['username', 'password', 'mode']
     for field in fields:
@@ -47,5 +46,9 @@ def loginPage():
     print(request.form.get('password'))
     print('MODE:', str(request.form.get('mode')).upper())
     return redirect('/games/minesweeper')
+
+@app.route("/profile", methods=["GET"])
+def profile():
+    return render_template("profile.j2")
 
 app.run(port=8080, debug=True)
