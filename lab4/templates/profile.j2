@@ -11,26 +11,27 @@
             {% endif %}
         </header>
         {% if ownprofile %}
-        <form method="post" class="profileForm">
+        <form class="profileForm" id="profileForm">
             <label>Change Avatar:</label>
-            <input type="file" id="avatar" name="avatar" accept="image/*">
+            <input type="file" id="avatar" name="avatar" accept="image/*" id="avatar">
+            <input class="clickable" type="submit" name="mode" value="Update Avatar" id="updateButtonAvatar"/>
+            <img src="{{ avatar }}" alt="Avatar" class="avatar"/>
 
-            <label>Change First name:</label>
-            <input type="text" name="fname" value="{{ fname }}"/>
+            <div style="flex-direction: row">
+                <label>Change First name:</label>
+                <input type="text" name="fname" value="{{ fname }}"/>
 
-            <label>Change Last name:</label>
-            <input type="text" name="lname" value="{{ lname }}"/>
+                <label>Change Last name:</label>
+                <input type="text" name="lname" value="{{ lname }}"/>
+            </div>
+            <input class="clickable" type="submit" name="mode" value="Update Name" id="updateButtonName"/>
 
             <label>Change Password:</label>
             <input type="password" name="password"/>
+            <input class="clickable" type="submit" name="mode" value="Update Password" id="updateButtonPass"/>
 
-            <div>
-                <label>Submit Changes:</label>
-                <input class="clickable" type="submit" name="mode" value="update"/>
-
-                <label>Delete account:</label>
-                <input class="clickable" type="submit" name="mode" value="delete"/>
-            </div>
+            <label>Delete account:</label>
+            <input class="clickable" type="submit" name="mode" value="Delete Account" id="deleteButton"/>
         </form>
         {% else %}
         <div class="profileView">
@@ -50,4 +51,82 @@
         <div style="height: 1px; background-color: #0f0f0f; w-full"></div>
         <p>Played Games:</p>
     </body>
+
+    <script>
+        const form = document.getElementById('profileForm');
+        const avatarInput = document.getElementById('avatar');
+        const updateButtonAvatar = document.getElementById('updateButtonAvatar');
+        const updateButtonName = document.getElementById('updateButtonName');
+        const updateButtonPass = document.getElementById('updateButtonPass');
+        const deleteButton = document.getElementById('deleteButton');
+
+        // Function to convert image to base64 to send to server
+        // I must do this to put this in the json request
+        const toBase64 = (file) => {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = (error) => reject(error);
+                reader.readAsDataURL(file);
+            });
+        };
+
+        // Function to handle edit submission
+        const handleEditAccount = async (action, data) => {
+            try {
+
+                // Prepare the payload
+                const payload = { action, data };
+
+                // Make the PUT request
+                const response = await fetch(window.location.pathname, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload), 
+                });
+
+                // Handle the response
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('PUT request successful:', result);
+                } else {
+                    console.error('PUT request failed:', response.statusText);
+                }
+            } catch (error) {
+                console.error('Error during PUT request:', error);
+            }
+        };
+
+        // Function to delete an account
+        const handleDelete = async () => {
+            if (!confirm('Are you sure you want to delete your account?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(window.location.pathname, {
+                    method: 'DELETE'
+                });
+
+                window.location.href = '/';
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while deleting the account.');
+            }
+        };
+
+        // Intercept form submission
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault(); // Cancel default action
+
+            const formData = new FormData(form);
+
+            if (event.submitter === updateButtonAvatar) handleEditAccount("picture", { picture: await toBase64(formData.get('avatar')) });
+            else if (event.submitter === updateButtonName) handleEditAccount("name", { fname: formData.get("fname"), lname: formData.get('lname') });
+            else if (event.submitter === updateButtonPass) handleEditAccount("password", { password: formData.get('password') });
+            else if (event.submitter === deleteButton) handleDelete();
+        });
+    </script>
 </html>

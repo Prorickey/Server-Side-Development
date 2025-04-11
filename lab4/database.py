@@ -127,3 +127,52 @@ def register(username, password):
         release_connection(conn)
 
     return True
+
+def delete_user(user):
+    """
+    Delete a user account and its associated profile
+    """
+
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM profiles WHERE userid = (SELECT rowid FROM accounts WHERE username=?)", (user,))
+        cursor.execute("DELETE FROM accounts WHERE username=?", (user,))
+        conn.commit()
+    finally:
+        release_connection(conn)
+
+def update_password(user, password):
+    """
+    Update a users password
+    """
+
+    conn = get_connection()
+    try:
+        salt = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(8))
+        hashed_password = hashlib.sha256((salt + password).encode()).hexdigest()
+
+        print(password)
+
+        cursor = conn.cursor()
+        cursor.execute("UPDATE accounts SET password=?, salt=? WHERE username=?", (hashed_password, salt, user))
+        conn.commit()
+    finally:
+        release_connection(conn)
+
+    return True
+
+def update_name(user, fname, lname):
+    """
+    Update a users name
+    """
+
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("UPDATE profiles SET fname=?, lname=? WHERE userid = (SELECT rowid FROM accounts WHERE username=?)", (fname, lname, user))
+        conn.commit()
+    finally:
+        release_connection(conn)
+
+    return True

@@ -1,4 +1,6 @@
-from flask import Flask, request, send_file, redirect, render_template, Response
+import base64
+import os
+from flask import Flask, jsonify, make_response, request, send_file, redirect, render_template, Response
 import redis
 import games
 import database
@@ -186,8 +188,64 @@ def profile_username(username):
     
     if user == username:
         # The user is trying to access their own profile
-        return render_template("profile.j2", ownprofile=True, fname=profile[0], lname=profile[1], avatar=profile[2])
+        return render_template("profile.j2", ownprofile=True, fname=profile[0], lname=profile[1], avatar=f"/static/avatars/{user}_avatar.png")
     else:
         return render_template("profile.j2", ownprofile=False, fname=profile[0], lname=profile[1], avatar=profile[2])
+
+@app.route("/profile/<username>", methods=["PUT", "DELETE"])
+def update_account(username):
+    token = request.cookies.get('session')
+
+    if token is None:
+        # No token found, redirect to login page
+        return jsonify({'status': 401, 'error': 'Unauthenticated', 'data':{}}), 401
+    
+    # Yay! the user is logged in and we redirect them to their profile
+    user = get_token_data(token)
+
+    if user is None:
+        # No user found in redis, redirect to login page
+        return jsonify({'status': 401, 'error': 'Unauthenticated', 'data':{}}), 401
+    
+    if user != username:
+        # Wrong user!
+        return jsonify({'status': 401, 'error': 'Unauthenticated', 'data':{}}), 401
+
+    if request.method == "DELETE":
+        database.delete_user(user)
+        R_Server.delete(token)
+        resp = make_response()
+        resp.set_cookie('session', '', expires=0)
+        return resp
+    
+    data = request.get_json()
+    try:
+        if data['action'] == "password":
+            if database.update_password(user, data['data']['password']):
+                return jsonify({'status': 200, 'data': 'password changed'}), 200
+            
+            return jsonify({'status': 400, 'error': 'password could not be changed'}), 400
+        if data['action'] == "name":
+            if database.update_name(user, data['data']['fname'], data['data']['lname']):
+                return jsonify({'status': 200, 'data': 'name changed'}), 200
+            
+            return jsonify({'status': 400, 'error': 'name could not be changed'}), 400
+        if data['action'] == "picture":
+            header, encoded = data['data']['picture'].split(',', 1)  
+            file_ext = header.split('/')[1].split(';')[0] 
+            image_binary = base64.b64decode(encoded)
+
+            directory = "static/avatars/"
+            os.makedirs(directory, exist_ok=True)
+
+            file_name = f"{user}_avatar.{file_ext}"
+            file_path = os.path.join(directory, file_name)
+            with open(file_path, 'wb') as f:
+                f.write(image_binary)
+
+            return jsonify({'status': 200, 'data': 'avatar successfully updated'}), 200
+    except Exception as e:
+        print(e)
+        return jsonify({'status': 400, 'error': 'Malformed request', 'data':{}}), 400
 
 app.run(port=8080, debug=True)
