@@ -2,6 +2,7 @@ from flask import Flask, request, send_file, redirect, render_template, Response
 import redis
 import games
 import database
+import uuid
 
 app = Flask(__name__)
 
@@ -67,6 +68,14 @@ def postIndex():
 @app.route("/login", methods=["GET", "POST"])
 def loginPage():
     if request.method == "GET":
+        # Get the session token from the request cookies - server-side token
+        token = request.cookies.get('session')
+
+        if token != None:
+            user = get_token_data(token)
+            if user != None:
+                return redirect(f'/profile/{user}')
+        
         return render_template('login.j2')
     
     fields = ['username', 'password', 'mode']
@@ -77,28 +86,61 @@ def loginPage():
             return "ERROR"
     
     if request.form.get('mode') not in ['login', 'register']:
-        return "ERROR"
+        return render_template('login.j2', error="Malformed request")
 
     print(request.form.get('username'))
     print(request.form.get('password'))
     print('MODE:', str(request.form.get('mode')).upper())
+
+    if request.form.get('mode').lower() == 'login':
+        # Attempt to login the user
+        if database.login(request.form.get('username'), request.form.get('password')):
+            # Create the session token
+            token = uuid.uuid4()
+
+            # Store the session data in Redis
+            R_Server.set(str(token), request.form.get('username').lower())
+
+            # Set the session cookie in the response
+            response = redirect('/games/minesweeper')
+            response.set_cookie('session', str(token))
+            return response
+        else:
+            # It's important that the message is generic to prevent user phishing attacks
+            return render_template('login.j2', error="User doesn't exist or password is incorrect")
+    elif request.form.get('mode').lower() == 'register':
+        # Attempt to register the user
+        if database.register(request.form.get('username'), request.form.get('password')):
+            # Create the session token
+            token = uuid.uuid4()
+
+            # Store the session data in Redis
+            R_Server.set(str(token), request.form.get('username').lower())
+
+            # Set the session cookie in the response
+            response = redirect('/games/minesweeper')
+            response.set_cookie('session', str(token))
+            return response
+        else:
+            return render_template('login.j2', error="Could not register user. Username may already exist.")
+
     return redirect('/games/minesweeper')
 
 @app.route("/profile", methods=["GET"])
 def profile():
-    # # Get the session token from the request cookies - server-side token
-    # token = request.cookies.get('session')
+    # Get the session token from the request cookies - server-side token
+    token = request.cookies.get('session')
 
-    # if token is None:
-    #     # No token found, redirect to login page
-    #     return redirect('/login')
+    if token is None:
+        # No token found, redirect to login page
+        return redirect('/login')
     
-    # # Yay! the user is logged in and we redirect them to their profile
-    # user = get_token_data(token)
+    # Yay! the user is logged in and we redirect them to their profile
+    user = get_token_data(token)
 
-    # if user is None:
-    #     # No user found in redis, redirect to login page
-    #     return redirect('/login')
+    if user is None:
+        # No user found in redis, redirect to login page
+        return redirect('/login')
 
     profiles = database.get_all_profiles()
 

@@ -7,7 +7,14 @@
             Login or Register
         </header>
         <form action="/login" method="POST">
-            <input placeholder='username' required name="username"/>
+            <div id="error" class="error">
+                {% if error %}
+                    {{ error }}
+                {% endif %}
+            </div>
+            <div>
+                <input placeholder='username' required name="username"/>
+            </div>
             <div>
                 <input placeholder='password' required name='password' type="password"/>
                 <button id="passwordVis">&#x1F512;</button>

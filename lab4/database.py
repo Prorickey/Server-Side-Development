@@ -1,5 +1,9 @@
 from queue import Queue
+import secrets
 import sqlite3
+import hashlib
+import string
+import uuid
 
 schema_file = "schema.sql"
 
@@ -50,3 +54,59 @@ def get_all_profiles():
         release_connection(conn)
 
     return profiles
+
+def login(username, password):
+    """
+    Check if the username and password are valid. If they are valid, true will be returned.
+    """
+
+    # Grab a connection from the pool
+    conn = get_connection()
+    verified = False
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT salt, password FROM accounts WHERE username=?", (username.lower(),))
+        result = cursor.fetchone()
+
+        if result is not None:
+            salt = result[0]
+
+            # Hash the password with the salt
+            hashed_password = hashlib.sha256((salt + password).encode()).hexdigest()
+            if hashed_password == result[1]:
+                verified = True
+    finally:
+        # Release the connection back to the pool
+        release_connection(conn)
+
+    return verified
+
+def register(username, password):
+    """
+    Register a new user with the given username and password. If the username is already taken, false will be returned.
+    """
+
+    # Grab a connection from the pool
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM accounts WHERE username=?", (username.lower(),))
+        existing_user = cursor.fetchone()
+
+        if existing_user is not None:
+            return False
+
+        # Generate a random salt
+        salt = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(8))
+
+        # Hash the password with the salt
+        hashed_password = hashlib.sha256((salt + password).encode()).hexdigest()
+
+        # Insert the new user into the database
+        cursor.execute("INSERT INTO accounts (username, password, salt) VALUES (?, ?, ?)", (username.lower(), hashed_password, salt))
+        conn.commit()
+    finally:
+        # Release the connection back to the pool
+        release_connection(conn)
+
+    return True
