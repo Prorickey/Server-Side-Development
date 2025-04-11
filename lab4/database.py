@@ -3,7 +3,6 @@ import secrets
 import sqlite3
 import hashlib
 import string
-import uuid
 
 schema_file = "schema.sql"
 
@@ -55,6 +54,23 @@ def get_all_profiles():
 
     return profiles
 
+def get_profile(username):
+    """
+    Get the profile for the given username. This includes the first name, last name, and bio.
+    """
+
+    # Grab a connection from the pool
+    conn = get_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT fname, lname, avatar FROM profiles INNER JOIN accounts ON profiles.userid = accounts.rowid WHERE accounts.username=?", (username.lower(),))
+        profile = cursor.fetchone()
+    finally:
+        # Release the connection back to the pool
+        release_connection(conn)
+
+    return profile
+
 def login(username, password):
     """
     Check if the username and password are valid. If they are valid, true will be returned.
@@ -104,6 +120,7 @@ def register(username, password):
 
         # Insert the new user into the database
         cursor.execute("INSERT INTO accounts (username, password, salt) VALUES (?, ?, ?)", (username.lower(), hashed_password, salt))
+        cursor.execute("INSERT INTO profiles (userid) VALUES (?)", (cursor.lastrowid,))
         conn.commit()
     finally:
         # Release the connection back to the pool

@@ -4,21 +4,49 @@
     </head>
     <body>
         <header>
-            Edit Profile
+            {% if ownprofile %}
+                Edit Profile
+            {% else %}
+                {{ fname }} {{ lname }}'s Profile
+            {% endif %}
         </header>
+        {% if ownprofile %}
         <form method="post" class="profileForm">
             <label>Change Avatar:</label>
             <input type="file" id="avatar" name="avatar" accept="image/*">
 
+            <label>Change First name:</label>
+            <input type="text" name="fname" value="{{ fname }}"/>
+
+            <label>Change Last name:</label>
+            <input type="text" name="lname" value="{{ lname }}"/>
+
             <label>Change Password:</label>
-            <input type="password" name="pass">
+            <input type="password" name="password"/>
 
-            <label>Change Display Name:</label>
-            <input type="text" name="displayName">
+            <div>
+                <label>Submit Changes:</label>
+                <input class="clickable" type="submit" name="mode" value="update"/>
 
-            <label>Submit Changes:</label>
-            <input class="clickable" type="submit"/>
+                <label>Delete account:</label>
+                <input class="clickable" type="submit" name="mode" value="delete"/>
+            </div>
         </form>
+        {% else %}
+        <div class="profileView">
+            <label>First name:</label>
+            <p>{{ fname }}</p>
+
+            <label>Last name:</label>
+            <p>{{ lname }}</p>
+
+            <label>Avatar:</label>
+            {% if avatar %}
+                <img src="{{ avatar }}" alt="Avatar" class="avatar"/>
+            {% else %}
+                <p>No Avatar</p>
+            {% endif %}
+        {% endif %}
         <div style="height: 1px; background-color: #0f0f0f; w-full"></div>
         <p>Played Games:</p>
     </body>

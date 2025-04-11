@@ -126,6 +126,24 @@ def loginPage():
 
     return redirect('/games/minesweeper')
 
+@app.route("/logout", methods=["POST"])
+def logout():
+    # Get the session token from the request cookies - server-side token
+    token = request.cookies.get('session')
+
+    if token is None:
+        # No token found, redirect to login page
+        return redirect('/login')
+    
+    # Delete the session data from Redis
+    R_Server.delete(token)
+
+    # Delete the session cookie from the response
+    response = redirect('/login')
+    response.set_cookie('session', '', expires=0)
+    
+    return response
+
 @app.route("/profile", methods=["GET"])
 def profile():
     # Get the session token from the request cookies - server-side token
@@ -147,5 +165,29 @@ def profile():
     print(profiles)
 
     return render_template("users.j2", profiles=profiles)
+
+@app.route("/profile/<username>", methods=["GET"])
+def profile_username(username):
+    # Get the session token from the request cookies - server-side token
+    token = request.cookies.get('session')
+
+    if token is None:
+        # No token found, redirect to login page
+        return redirect('/login')
+    
+    # Yay! the user is logged in and we redirect them to their profile
+    user = get_token_data(token)
+
+    if user is None:
+        # No user found in redis, redirect to login page
+        return redirect('/login')
+    
+    profile = database.get_profile(username.lower())
+    
+    if user == username:
+        # The user is trying to access their own profile
+        return render_template("profile.j2", ownprofile=True, fname=profile[0], lname=profile[1], avatar=profile[2])
+    else:
+        return render_template("profile.j2", ownprofile=False, fname=profile[0], lname=profile[1], avatar=profile[2])
 
 app.run(port=8080, debug=True)
