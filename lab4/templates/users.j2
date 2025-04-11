@@ -1,0 +1,30 @@
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="/static/style.css">
+    </head>
+    <body>
+        <header>
+            <h1>Users</h1>
+        </header>
+        <table boder="1" style="background-color:#fff">
+            <thead>
+                <tr>
+                    <th class="tableItem">Username</th>
+                    <th class="tableItem">First Name</th>
+                    <th class="tableItem">Last Name</th>
+                    <th class="tableItem">Profiles</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in profiles %}
+                <tr>
+                    <td class="tableItem">{{ p[0] }}</td>
+                    <td class="tableItem">{{ p[1] }}</td>
+                    <td class="tableItem">{{ p[2] }}</td>
+                    <td class="tableItem"><a href="/profile/{{ p[0] }}">View Profile</a></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </body>
+</html>

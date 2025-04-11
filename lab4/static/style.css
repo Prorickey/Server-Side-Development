@@ -60,3 +60,18 @@ input, button {
 
     border-radius: 10px;
 }
+
+.profileForm > label {
+    font-size: 1.5rem;
+    align-self: start;
+    color: #bebebe;
+}
+
+.clickable {
+    cursor: pointer;
+}  
+
+.tableItem {
+    border: 1px solid #000;
+    padding: 3px;
+}
