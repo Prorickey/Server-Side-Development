@@ -212,12 +212,15 @@ def update_account(username):
         return jsonify({'status': 401, 'error': 'Unauthenticated', 'data':{}}), 401
 
     if request.method == "DELETE":
+        # Delete from the database and redis
         database.delete_user(user)
         R_Server.delete(token)
+        # respond with the updated session
         resp = make_response()
         resp.set_cookie('session', '', expires=0)
         return resp
     
+    # Get the json in the request
     data = request.get_json()
     try:
         if data['action'] == "password":
@@ -231,13 +234,16 @@ def update_account(username):
             
             return jsonify({'status': 400, 'error': 'name could not be changed'}), 400
         if data['action'] == "picture":
+            # Split up the base64 string into header and data
             header, encoded = data['data']['picture'].split(',', 1)  
             file_ext = header.split('/')[1].split(';')[0] 
-            image_binary = base64.b64decode(encoded)
+            image_binary = base64.b64decode(encoded) # Parse the base64 string
 
+            # ensure the directory exists
             directory = "static/avatars/"
             os.makedirs(directory, exist_ok=True)
 
+            # Save the image to the directory
             file_name = f"{user}_avatar.{file_ext}"
             file_path = os.path.join(directory, file_name)
             with open(file_path, 'wb') as f:
@@ -245,7 +251,6 @@ def update_account(username):
 
             return jsonify({'status': 200, 'data': 'avatar successfully updated'}), 200
     except Exception as e:
-        print(e)
         return jsonify({'status': 400, 'error': 'Malformed request', 'data':{}}), 400
 
 app.run(port=8080, debug=True)

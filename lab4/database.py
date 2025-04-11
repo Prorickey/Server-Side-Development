@@ -149,10 +149,9 @@ def update_password(user, password):
 
     conn = get_connection()
     try:
+        # Rehash the password with a new salt to ensure security
         salt = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(8))
         hashed_password = hashlib.sha256((salt + password).encode()).hexdigest()
-
-        print(password)
 
         cursor = conn.cursor()
         cursor.execute("UPDATE accounts SET password=?, salt=? WHERE username=?", (hashed_password, salt, user))
