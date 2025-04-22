@@ -1,7 +1,7 @@
-import socket
+from socket import socket, AF_INET, SOCK_STREAM
 from threading import Thread
 
-serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
+serversocket = socket(AF_INET, SOCK_STREAM) 
 serversocket.bind(('0.0.0.0', 8089)) 
 serversocket.listen(5)
 

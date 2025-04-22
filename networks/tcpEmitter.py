@@ -1,7 +1,7 @@
 import socket 
 import time
 
-CONNECT_IP='localhost'
+CONNECT_IP='192.168.161.15'
 
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client_socket.connect((CONNECT_IP, 8089)) 
