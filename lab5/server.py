@@ -4,6 +4,7 @@ from threading import Thread
 
 def run_udp(R, stop_event):
     serversocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    serversocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     serversocket.bind(('0.0.0.0', 8082))
 
     # Set the timeout so we can check the stop event
