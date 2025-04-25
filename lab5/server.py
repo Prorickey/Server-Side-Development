@@ -5,6 +5,8 @@ from threading import Thread
 def run_udp(R, stop_event):
     serversocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     serversocket.bind(('0.0.0.0', 8082))
+
+    # Set the timeout so we can check the stop event
     serversocket.settimeout(1.0)
 
     while not stop_event.is_set(): 
@@ -12,18 +14,19 @@ def run_udp(R, stop_event):
             # Receive data and address from client
             data, addr = serversocket.recvfrom(1024) 
 
-            items = R.lrange("connections", 0, -1)
+            # Check if the address is in the redis database
+            # if not, we can add it
             try:
-                items.index(addr[0].encode()) 
+                R.lrange("connections", 0, -1).index(addr[0].encode()) 
             except ValueError:
                 R.lpush("connections", addr[0])
             
+            # This regex helps extract the number from the format
+            # I am expecting
             match = re.search(r'my number is (\d+)', data.decode("utf-8"))
             if match:
                 number = int(match.group(1))
                 print(f"UDP RECVD: {addr[0]} {number}")
-            else:
-                print(f"Malformed message from client (UDP): {addr[0]}")
         except socket.timeout:
             continue  
 
@@ -31,12 +34,13 @@ def run_tcp(R, stop_event):
     serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
     serversocket.bind(('0.0.0.0', 8082)) 
     serversocket.listen(10)
+
+    # Set the timeout so we can check the stop event
     serversocket.settimeout(1.0)
 
     def handle(conn, addr):
-        items = R.lrange("connections", 0, -1)
         try:
-            items.index(addr[0].encode()) 
+            R.lrange("connections", 0, -1).index(addr[0].encode()) 
         except ValueError:
             R.lpush("connections", addr[0])
 
@@ -56,6 +60,10 @@ def run_tcp(R, stop_event):
             try:
                 connection, address = serversocket.accept() 
                 print(f"Accepted connection from {address[0]}")
+
+                # Handle the connection on a seperate thread because it's blocking
+                # daemon=True because it doesn't say that I need to handle these
+                # threads gracefully
                 Thread(target=handle, args=(connection, address), daemon=True).start()
             except socket.timeout:
                 continue  

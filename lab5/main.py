@@ -7,17 +7,23 @@ import redis
 import broadcast
 import server
 
+# Change this to your active network interface
+NETWORK_INTERFACE = "en0"
+
 # Connect to Redis
 R = redis.StrictRedis()
 try:
     R.ping()
 except:
     print("REDIS: Not Running -- must be available to start")
-    exit(1)
+    exit(1) # Redis is essential to the function of the server
 
-R.flushdb()
+R.flushdb() # I wanted a fresh database
+
+# These two lines help create an empty array because there is no 
+# empty array function for redis
 R.lpush("connections", "temp")
-R.lpop("connections")
+R.lpop("connections") 
 
 # Check first if the argument exists, if not, offer a helpful error message
 if len(sys.argv) < 2:
@@ -30,7 +36,7 @@ if not number.isdigit():
     print("Please provide a valid positive integer.")
     sys.exit(1)
 
-MY_IP = ni.ifaddresses('en0')[ni.AF_INET][0]['addr']
+MY_IP = ni.ifaddresses(NETWORK_INTERFACE)[ni.AF_INET][0]['addr']
 
 if len(sys.argv) > 2:
     flags = sys.argv[2:]
@@ -42,7 +48,8 @@ if len(sys.argv) > 2:
 # Compile the pattern here to validate the IPv4 address
 ipv4_pat = re.compile(r"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$")
 
-# This is a list of threads that must be joined
+# This is a list of threads that
+# must be joined before exiting 
 stop_event = Event()
 threads = []
 
