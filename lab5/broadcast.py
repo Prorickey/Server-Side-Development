@@ -11,4 +11,4 @@ def broadcast_thread(MY_IP, number):
         sock.sendto(bytes(msg, 'utf-8'), ("255.255.255.255", 8082))
         sock.close()
 
-        sleep(0.5)
+        sleep(5)
