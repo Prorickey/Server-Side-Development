@@ -12,9 +12,10 @@ R = redis.StrictRedis()
 try:
     R.ping()
 except:
-    print("REDIS: Not Running -- No Streams Available")
-    R = None
+    print("REDIS: Not Running -- must be available to start")
+    exit(1)
 
+R.flushdb()
 R.lpush("connections", "temp")
 R.lpop("connections")
 
@@ -36,7 +37,7 @@ if len(sys.argv) > 2:
     for f in flags:
         if f == "-b":
             # This thread can just be terminated, so I added daemon=True
-            Thread(target=broadcast.broadcast_thread, args=(MY_IP, number, ), daemon=True)
+            Thread(target=broadcast.broadcast_thread, args=(MY_IP, number, ), daemon=True).start()
 
 # Compile the pattern here to validate the IPv4 address
 ipv4_pat = re.compile(r"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$")
@@ -44,9 +45,16 @@ ipv4_pat = re.compile(r"^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$")
 # This is a list of threads that must be joined
 stop_event = Event()
 threads = []
-server_thread = Thread(target=server.run, args=(stop_event,))
-server_thread.start()
-threads.append(server_thread)
+
+# Start the TCP server
+tcp_thread = Thread(target=server.run_tcp, args=(R, stop_event,))
+tcp_thread.start()
+threads.append(tcp_thread)
+
+# Start the UDP server
+udp_thread = Thread(target=server.run_udp, args=(R, stop_event,))
+udp_thread.start()
+threads.append(udp_thread)
 
 print(f"Connect on LAN IP: {MY_IP}")
 print("Server started. Type 'exit' to stop.")
@@ -70,6 +78,7 @@ while True:
             # Send the message to the server
             client_socket.send(bytes(msg, 'utf-8'))
             print(f"Sent to {user_input}: {msg}")
+            client_socket.close()
         except Exception as err:
             print(f"Exception: {err}")
     else:
