@@ -48,10 +48,13 @@ def run_tcp(R, stop_event):
         try:
             while True:
                 buf = conn.recv(64)
-                match = re.search(r'my number is (\d+)', buf.decode("utf-8"))
-                if match:
-                    number = int(match.group(1))
-                    print(f"TCP RECVD: {addr[0]} {number}")
+                try:
+                    match = re.search(r'my number is (\d+)', buf.decode("utf-8"))
+                    if match:
+                        number = int(match.group(1))
+                        print(f"TCP RECVD: {addr[0]} {number}")
+                except Exception as err:
+                    print(f"Error reading message: {err}")
         finally:
             conn.close()
             R.lrem("connections", 1, addr[0])
